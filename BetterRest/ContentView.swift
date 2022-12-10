@@ -14,10 +14,6 @@ struct ContentView: View {
     @State private var sleepAmount = 8.0
     @State private var coffeeAmount = 1
     
-    @State private var alertTite = ""
-    @State private var alertMSG = ""
-    @State private var showAlert = false
-    
     
     static var defaultWakeTime: Date {
         var components = DateComponents()
@@ -26,43 +22,8 @@ struct ContentView: View {
         return Calendar.current.date(from: components) ?? Date.now
     }
     
-    var body: some View {
-        //View
-        NavigationView {
-            Form {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("When do you want to wake up?")
-                        .font(.headline)
-                    DatePicker("Please enter a time", selection: $wakeUp, displayedComponents: .hourAndMinute)
-                        .labelsHidden()
-                }
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Desired amount of sleep")
-                        .font(.headline)
-                    Stepper("\(sleepAmount.formatted()) hours", value: $sleepAmount, in: 4...12, step: 0.25)
-                }
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("How much coffee do you drink?")
-                        .font(.headline)
-                    Stepper(coffeeAmount == 1 ? "1 cup" : "\(coffeeAmount) cups", value: $coffeeAmount, in: 1...20)
-                }
-                
-            }
-            .navigationTitle("BetterRest")
-            .toolbar {
-                Button("Calculate", action: calculateBedTime)
-            }
-            .alert(alertTite, isPresented: $showAlert) {
-                Button("OK") {}
-            } message: {
-                Text(alertMSG)
-            }
-        }
-    }
     
-    //Functionality
-    
-    func calculateBedTime() {
+    var sleepResults: String {
         do {
             let config = MLModelConfiguration()
             let model = try SleepCalculator(configuration: config)
@@ -75,16 +36,54 @@ struct ContentView: View {
             
             let sleepTime = wakeUp - prediction.actualSleep
             
-            alertTite = "Your ideal bedtime is...."
-            alertMSG = sleepTime.formatted(date: .omitted, time: .shortened)
+            return sleepTime.formatted(date: .omitted, time: .shortened)
             
         } catch {
             //something went wrong
-            alertTite = "Error"
-            alertMSG = "Sorry there was an issue calculating bed time"
+            return "There was an error "
         }
-        
-        showAlert = true
+    }
+    
+    var body: some View {
+        //View
+        NavigationView {
+            VStack {
+                Form {
+                    Section {
+                        DatePicker("Please enter a time", selection: $wakeUp, displayedComponents: .hourAndMinute)
+                            .labelsHidden()
+                    } header: {
+                        Text("When do you want to wake up?")
+                    }
+                    Section {
+                        Stepper("\(sleepAmount.formatted()) hours", value: $sleepAmount, in: 4...12, step: 0.25)
+                    } header: {
+                        Text("Desired amount of sleep")
+                    }
+                    Section {
+    //                    Stepper(coffeeAmount == 1 ? "1 cup" : "\(coffeeAmount) cups", value: $coffeeAmount, in: 1...20)
+                        Picker("Cups of Coffee", selection: $coffeeAmount) {
+                            ForEach(1..<21) {
+                                Text(String($0))
+                            }
+                        }
+                    } header: {
+                        Text("How much coffee do you drink?")
+                    }
+                 }
+                VStack {
+                    Text("Your ideal bed time is:")
+                        .font(.title3)
+                    Text(sleepResults)
+                        .font(.title.weight(.bold))
+                }
+                Spacer()
+                Spacer()
+                Spacer()
+                Spacer()
+            }
+           .navigationTitle("BetterRest")
+        }
     }
 }
 
